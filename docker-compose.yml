@@ -1,0 +1,67 @@
+version: "3"
+
+services:
+  app:
+    build: .
+    image: uts-sisi-server:latest
+    container_name: uts-sisi-server
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "8085:80"  # Hanya untuk PHP-FPM, digunakan untuk komunikasi internal
+    environment:
+      - SERVICE_NAME=uts-sisi-server
+    working_dir: /var/www/uts-sisi-server
+    volumes:
+      - .:/var/www/uts-sisi-server
+      - ./storage/php.ini:/usr/local/etc/php/conf.d/php.ini
+    networks:
+      - uts-sisi-server
+
+  webserver:
+    image: nginx:latest
+    container_name: uts-sisi-server-nginx
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "2022:80"  # Port yang digunakan untuk akses HTTP eksternal
+    volumes:
+      - .:/var/www/uts-sisi-server
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf  # Pastikan konfigurasi nginx.conf ada
+    networks:
+      - uts-sisi-server
+
+  db:
+    image: mysql:5.7
+    container_name: uts-sisi-server-mysql
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306:3306"  # Port MySQL untuk akses database
+    volumes:
+      - libdata:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=indraprasta
+      - MYSQL_PASSWORD=indraprasta
+      - SERVICE_TAGS=dev
+      - SERVICE_NAME=mysql
+    networks:
+      - uts-sisi-server
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: uts-sisi-server-phpmyadmin
+    depends_on:
+      - db
+    restart: always
+    ports:
+      - "7000:80"  # Port untuk akses PhpMyAdmin
+    networks:
+      - uts-sisi-server
+
+networks:
+  uts-sisi-server:
+    driver: bridge
+
+volumes:
+  libdata:
